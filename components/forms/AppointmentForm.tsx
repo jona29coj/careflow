@@ -10,7 +10,8 @@ import { z } from "zod";
 import { SelectItem } from "@/components/ui/select";
 import { Doctors } from "@/constants";
 import {
-  createAppointment
+  createAppointment,
+  updateAppointment,
 } from "@/lib/actions/appointment.actions";
 import { getAppointmentSchema } from "@/lib/validation";
 import { Appointment } from "@/types/appwrite.types";
@@ -71,7 +72,7 @@ export const AppointmentForm = ({
 
     try {
       if (type === "create" && patientId) {
-        const appointmentData = {
+        const appointment = {
           userId,
           patient: patientId,
           primaryPhysician: values.primaryPhysician,
@@ -81,14 +82,36 @@ export const AppointmentForm = ({
           note: values.note,
         };
 
-        const appointment = await createAppointment(appointmentData);
+        const newAppointment = await createAppointment(appointment);
 
-        if (appointment) {
-            form.reset();
-            router.push(
-              `/patients/${userId}/new-appointment/success?appointmentId=${appointment.$id}`
-            );
-        }}
+        if (newAppointment) {
+          form.reset();
+          router.push(
+            `/patients/${userId}/new-appointment/success?appointmentId=${newAppointment.$id}`
+          );
+        }
+      } else {
+        const appointmentToUpdate = {
+          userId,
+          appointmentId: appointment?.$id!,
+          appointment: {
+            primaryPhysician: values.primaryPhysician,
+            schedule: new Date(values.schedule),
+            status: status as Status,
+            cancellationReason: values.cancellationReason,
+          },
+          type,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Add the timeZone field
+
+        };
+
+        const updatedAppointment = await updateAppointment(appointmentToUpdate);
+
+        if (updatedAppointment) {
+          setOpen && setOpen(false);
+          form.reset();
+        }
+      }
     } catch (error) {
       console.log(error);
     }
